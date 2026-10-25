@@ -60,10 +60,22 @@
   .ready .fade { opacity: 1; }
   .ready .late { transition-delay: 1.6s; }
   h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  /* preloader: the logo in the middle, underlined by the menu's yellow wave drawing in and rolling */
+  #loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: #1f6f78; transition: opacity .6s ease, visibility 0s linear .6s; }
+  .loaded #loader { opacity: 0; visibility: hidden; }
+  #loader .mark { --k: clamp(.75, calc(100vw / 1200px), 1.4); width: calc(220px * var(--k)); }
+  #loader svg { display: block; width: 100%; height: auto; }
+  #loader .lwave { height: calc(10px * var(--k)); margin-top: calc(14px * var(--k));
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 6' preserveAspectRatio='none'%3E%3Cpath d='M0 3Q3 .6 6 3T12 3' fill='none' stroke='%23ead678' stroke-width='1.6'/%3E%3C/svg%3E") repeat-x 0 0 / calc(20px * var(--k)) 100%;
+    clip-path: inset(0 100% 0 0); animation: lwdraw 1.6s cubic-bezier(.65,0,.35,1) .2s forwards, lwroll .9s linear infinite; }
+  @keyframes lwdraw { to { clip-path: inset(0 0 0 0); } }
+  @keyframes lwroll { to { background-position-x: calc(20px * var(--k)); } }
+  @media (prefers-reduced-motion: reduce){ #loader .lwave { animation: lwdraw .01s forwards; } }
 </style>
 </head>
 <body>
 
+<div id="loader" aria-hidden="true"><div class="mark"><div class="lwave"></div></div></div>
 <canvas id="gl" aria-hidden="true"></canvas>
 <div id="shade" aria-hidden="true"></div>
 <canvas id="surfer" aria-hidden="true"></canvas>
@@ -492,6 +504,13 @@
   book.addEventListener("blur", () => btnOn(false));
   drawBtn(0, 0);
 
+  // preloader: a copy of the header logo, kept on screen for at least LOADER_MIN ms so the wave can draw in
+  const LOADER_MIN = 2200, tLoad = performance.now();
+  const mark = document.querySelector("#loader .mark"), logoCopy = document.querySelector(".logo svg").cloneNode(true);
+  logoCopy.querySelectorAll("[id]").forEach(el => el.id += "_l");
+  logoCopy.querySelectorAll("[clip-path]").forEach(el => el.setAttribute("clip-path", el.getAttribute("clip-path").replace(")", "_l)")));
+  mark.prepend(logoCopy);
+
   const ready = Promise.all([
     document.fonts.load('900 100px "Aktiv Grotesk"', ROW_TEXT),
     document.fonts.load('400 100px Perandory', CATCH.text),
@@ -502,10 +521,12 @@
   Promise.race([ready, new Promise(r => setTimeout(r, 5000))]).then(() => {
     upload();
     const still = parseFloat(new URLSearchParams(location.search).get("p"));   // ?p=0.5 freezes the ride at that point
-    if (still >= 0){ render(still); root.classList.add("ready"); return; }
+    if (still >= 0){ render(still); root.classList.add("loaded", "ready"); return; }
     render(reduce ? 1 : 0);
-    root.classList.add("ready");
-    setTimeout(play, 350);
+    setTimeout(() => {
+      root.classList.add("loaded");
+      setTimeout(() => { root.classList.add("ready"); setTimeout(play, 350); }, 450);
+    }, Math.max(0, LOADER_MIN - (performance.now() - tLoad)));
   });
 })();
 </script>

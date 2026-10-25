@@ -243,16 +243,23 @@
     return out;
   }
 
-  let W, H, dpr, s, ox, oy, pts = [], nrm = [], total = 1, dense = [], dcum = [];
+  // How very wide windows use their spare width: "track" opens the letter spacing, "gap" only the word gap, "none" keeps side margins.
+  const SPREAD = ((v) => v == "none" ? "" : v || "track")(new URLSearchParams(location.search).get("spread"));
+  let W, H, dpr, s, ox, oy, ex = 0, pts = [], nrm = [], total = 1, dense = [], dcum = [];
 
   function layout(){
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.round(innerWidth * dpr); H = Math.round(innerHeight * dpr);
-    s = Math.min(innerWidth / DW, innerHeight / DH);
-    ox = (innerWidth - DW*s) / 2; oy = (innerHeight - DH*s) / 2;
-    root.style.setProperty("--s", s);
+    const u = Math.min(innerWidth / DW, innerHeight / DH);   // header and facts
+    root.style.setProperty("--s", u);
+    // The headline block (ink x 121..1784, y 119..955 in the frame) grows past the Figma size until it is 30 px from
+    // the sides like the menu, or until it comes close to the logo above / the facts below, and sits centred between them.
+    const top = 92*u, bottom = innerHeight - 105*u;   // keep ~35 px of air to the logo and to the facts
+    s = u * Math.max(1, Math.min((innerWidth - 60*u) / (1663*u), (bottom - top) / (836*u)));
+    ox = innerWidth/2 - 952.5*s; oy = (top + bottom)/2 - 537*s;
+    ex = SPREAD ? Math.max(0, innerWidth - 60*u - 1663*s) / s : 0;   // spare width on very wide windows, design px
   }
-  const toDev = ([x, y]) => [(ox + x*s) * dpr, (oy + y*s) * dpr];
+  const toDev = ([x, y]) => [(ox + (x + ex*(x - 952.5)/1663)*s) * dpr, (oy + y*s) * dpr];
 
   // point on the dense path; before the start it continues straight along the first segment
   function along(d){
@@ -315,7 +322,7 @@
       for (let i = 0; i < ROW_TEXT.length; i++){
         // prefix width minus the glyph keeps the kerning pair in front of it
         const x = ROW_X + t.measureText(ROW_TEXT.slice(0, i+1)).width - t.measureText(ROW_TEXT[i]).width + track;
-        t.fillText(ROW_TEXT[i], x, top + base);
+        t.fillText(ROW_TEXT[i], x + (SPREAD == "gap" ? (i < 5 ? -ex/2 : ex/2) : ex*i/9 - ex/2), top + base);
         track += ROW_TRACK[i];
       }
     }

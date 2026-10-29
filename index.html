@@ -57,7 +57,7 @@
   .f3 { right: calc(30px * var(--s)); bottom: calc(30.9px * var(--s)); text-align: right; }
   .f3 p { line-height: 1.03; }
   .fade { opacity: 0; transition: opacity .9s ease; }
-  .ready .fade { opacity: 1; }
+  .ready .fade { opacity: 1; transition-delay: .9s; }   /* menu, logo, button and facts all come in together, a beat after the water */
   h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   /* preloader: the logo in the middle, underlined by the menu's yellow wave drawing in and rolling */
   #loader { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: #1f6f78; transition: opacity .6s ease, visibility 0s linear .6s; }
